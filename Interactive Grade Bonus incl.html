@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Grade Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            100: '#1a1a1a',
+                            200: '#141414',
+                            300: '#0f0f0f',
+                            400: '#0a0a0a',
+                            500: '#050505',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0a0a0a;
+            font-family: 'Inter', sans-serif;
+            color: #e5e5e5;
+        }
+        .course-card {
+            background-color: #1a1a1a;
+            border: 1px solid #2d2d2d;
+            transition: all 0.3s ease;
+        }
+        .course-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            border-color: #4f46e5;
+        }
+        .input-field {
+            border: 1px solid #333;
+            background-color: #141414;
+            color: #e5e5e5;
+            transition: border-color 0.2s;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #4F46E5;
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+        }
+        .btn-primary {
+            background-color: #4F46E5;
+            color: white;
+            transition: all 0.3s;
+        }
+        .btn-primary:hover {
+            background-color: #4338CA;
+            transform: translateY(-1px);
+        }
+        .btn-secondary {
+            background-color: #3f3f46;
+            color: white;
+            transition: all 0.3s;
+        }
+        .btn-secondary:hover {
+            background-color: #52525b;
+            transform: translateY(-1px);
+        }
+        .btn-success {
+            background-color: #059669;
+            color: white;
+            transition: all 0.3s;
+        }
+        .btn-success:hover {
+            background-color: #047857;
+            transform: translateY(-1px);
+        }
+        .btn-danger {
+            background-color: #dc2626;
+            color: white;
+            transition: all 0.3s;
+        }
+        .btn-danger:hover {
+            background-color: #b91c1c;
+            transform: translateY(-1px);
+        }
+        .weight-warning {
+            color: #ef4444;
+        }
+        .weight-success {
+            color: #22C55E;
+        }
+        .chart-container {
+            position: relative; 
+            width: 100%; 
+            max-width: 220px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 220px;
+            max-height: 220px;
+        }
+        .drag-over-top {
+            border-top: 2px solid #4F46E5;
+        }
+        .drag-over-bottom {
+            border-bottom: 2px solid #4F46E5;
+        }
+        .cursor-default {
+            cursor: default;
+        }
+        .cursor-grab {
+            cursor: grab;
+        }
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2.5rem;
+            text-align: center;
+            color: #71717a;
+            background-color: #1a1a1a;
+            border: 1px solid #2d2d2d;
+        }
+        .import-export-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 14px;
+        }
+        .file-input {
+            display: none;
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 18px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        .notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .notification.success {
+            background-color: #059669;
+        }
+        .notification.error {
+            background-color: #dc2626;
+        }
+        .mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 8px 0;
+        }
+        .mode-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #a1a1aa;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 22px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #3f3f46;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #4F46E5;
+        }
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+        .overall-cgpa {
+            background-color: #1a1a1a;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            margin: 12px auto;
+            max-width: 240px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border: 1px solid #2d2d2d;
+        }
+        .quick-add-panel {
+            background-color: #141414;
+            border: 1px solid #2d2d2d;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 8px;
+        }
+        .search-highlight {
+            background-color: #4f46e5;
+            padding: 2px 0;
+            border-radius: 3px;
+            color: white;
+        }
+        .search-container {
+            background-color: #0a0a0a;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border: 1px solid #2d2d2d;
+        }
+        .filter-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .filter-option {
+            background-color: #262626;
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .filter-option.active {
+            background-color: #4F46E5;
+            color: white;
+        }
+        .search-results-info {
+            margin-top: 8px;
+            font-size: 13px;
+            color: #a1a1aa;
+        }
+        .semester-header {
+            background-color: #0a0a0a;
+            border-bottom: 1px solid #2d2d2d;
+        }
+        .component-row {
+            background-color: #141414;
+            padding: 6px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+        }
+        .grade-display {
+            color: #818cf8;
+        }
+        .grade-display-letter {
+            color: #a5b4fc;
+        }
+        .semester-cgpa {
+            color: #818cf8;
+        }
+        .courses-container {
+            min-height: 100px;
+        }
+        .course-drag-over {
+            border: 2px dashed #4f46e5;
+            background-color: rgba(79, 70, 229, 0.1);
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4f46e5;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4338ca;
+        }
+        .bonus-marks-container {
+            display: flex;
+            align-items: center;
+            margin-top: 5px;
+        }
+        .bonus-marks-label {
+            font-size: 12px;
+            color: #a1a1aa;
+            margin-right: 5px;
+        }
+        .lock-indicator {
+            transition: all 0.3s ease;
+        }
+        .lock-indicator.unlocked {
+            color: #22C55E;
+        }
+    </style>
+</head>
+<body class="p-3 sm:p-4 md:p-5">
+    <div class="max-w-6xl mx-auto">
+        <header class="text-center mb-6">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-200 mb-2">Interactive Semester Grade Tracker</h1>
+            <p class="text-gray-400 text-sm">Add your semesters and track your courses and CGPA in real-time.</p>
+            
+            <div class="overall-cgpa">
+                <p class="text-xs font-semibold text-gray-400">Overall CGPA</p>
+                <p class="text-2xl font-bold text-indigo-400" id="overall-cgpa">0.00</p>
+            </div>
+            
+            <!-- Search Container -->
+            <div class="search-container mt-4">
+                <div class="relative">
+                    <input type="text" id="search-input" placeholder="Search courses or semesters..." class="w-full pl-3 pr-9 py-2 bg-[#141414] border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 text-gray-200 text-sm">
+                    <button id="search-btn" class="absolute right-2 top-2 text-gray-400 hover:text-indigo-400">
+                        <i class="fas fa-search text-sm"></i>
+                    </button>
+                </div>
+                
+                <div class="filter-options">
+                    <div class="filter-option active" data-filter="all">All</div>
+                    <div class="filter-option" data-filter="semester">Semesters</div>
+                    <div class="filter-option" data-filter="course">Courses</div>
+                </div>
+                
+                <div class="search-results-info hidden" id="search-results-info">
+                    Found <span id="results-count">0</span> results for "<span id="search-term"></span>"
+                    <button id="clear-search" class="text-indigo-400 hover:text-indigo-300 ml-2 text-sm">Clear search</button>
+                </div>
+            </div>
+            
+            <div class="mt-3 flex justify-center">
+                <button id="toggle-lock-btn" class="font-medium py-1 px-2.5 rounded-lg shadow flex items-center space-x-1.5 transition-colors duration-300 bg-indigo-600 text-white text-sm">
+                    <i class="fas fa-lock lock-indicator text-xs"></i>
+                    <span>Unlock Drag</span>
+                </button>
+            </div>
+            
+            <div class="import-export-container">
+                <button id="export-btn" class="btn-success font-medium py-1 px-2.5 rounded-lg shadow flex items-center space-x-1.5 text-sm">
+                    <i class="fas fa-download text-xs"></i>
+                    <span>Export Data</span>
+                </button>
+                <button id="import-btn" class="btn-secondary font-medium py-1 px-2.5 rounded-lg shadow flex items-center space-x-1.5 text-sm">
+                    <i class="fas fa-upload text-xs"></i>
+                    <span>Import Data</span>
+                </button>
+                <input type="file" id="import-file" class="file-input" accept=".json">
+            </div>
+        </header>
+
+        <main id="semesters-container" class="space-y-6 mb-6">
+            <div class="empty-state rounded-lg">
+                <i class="fas fa-book-open text-3xl text-gray-700 mb-3"></i>
+                <h3 class="text-lg font-semibold text-gray-500">No semesters yet</h3>
+                <p class="text-gray-600 text-sm mt-1">Add your first semester to get started</p>
+            </div>
+        </main>
+
+        <div class="flex flex-col sm:flex-row justify-center items-center gap-3">
+            <button id="add-semester-btn" class="btn-primary font-medium py-2 px-5 rounded-lg shadow text-sm">
+                <i class="fas fa-plus mr-1.5"></i>Add New Semester
+            </button>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const semestersContainer = document.getElementById('semesters-container');
+            const addSemesterBtn = document.getElementById('add-semester-btn');
+            const toggleLockBtn = document.getElementById('toggle-lock-btn');
+            const exportBtn = document.getElementById('export-btn');
+            const importBtn = document.getElementById('import-btn');
+            const importFile = document.getElementById('import-file');
+            const notification = document.getElementById('notification');
+            const overallCgpaElement = document.getElementById('overall-cgpa');
+            const searchInput = document.getElementById('search-input');
+            const searchBtn = document.getElementById('search-btn');
+            const filterOptions = document.querySelectorAll('.filter-option');
+            const searchResultsInfo = document.getElementById('search-results-info');
+            const resultsCount = document.getElementById('results-count');
+            const searchTerm = document.getElementById('search-term');
+            const clearSearch = document.getElementById('clear-search');
+            const lockIndicator = document.querySelector('.lock-indicator');
+            
+            let semesterCounter = 0;
+            let courseCounter = 0;
+            let draggedSemester = null;
+            let draggedCourse = null;
+            let isLocked = true; // Locked by default
+            let currentFilter = 'all';
+            let currentSearchTerm = '';
+
+            // Function to convert two-digit years to four-digit years
+            const normalizeYear = (yearStr) => {
+                if (!yearStr) return null;
+                
+                // If it's already a four-digit year, return as number
+                if (/^\d{4}$/.test(yearStr)) {
+                    return parseInt(yearStr, 10);
+                }
+                
+                // If it's a two-digit year, convert to four-digit
+                if (/^\d{2}$/.test(yearStr)) {
+                    return 2000 + parseInt(yearStr, 10);
+                }
+                
+                // Return null for invalid formats
+                return null;
+            };
+
+            // Show notification function
+            const showNotification = (message, isSuccess = true) => {
+                notification.textContent = message;
+                notification.className = `notification ${isSuccess ? 'success' : 'error'}`;
+                notification.classList.add('show');
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+            };
+
+            // Update overall CGPA function
+            const updateOverallCGPA = () => {
+                let totalWeightedCGPA = 0;
+                let totalCredits = 0;
+                
+                const semesterCards = document.querySelectorAll('[id^="semester-"]');
+                semesterCards.forEach(semesterCard => {
+                    const cgpa = parseFloat(semesterCard.querySelector('.semester-cgpa').textContent);
+                    const courseCards = semesterCard.querySelectorAll('.course-card');
+                    let semesterCredits = 0;
+                    
+                    courseCards.forEach(courseCard => {
+                        const credits = parseFloat(courseCard.querySelector('.course-credits').value);
+                        if (!isNaN(credits)) {
+                            semesterCredits += credits;
+                        }
+                    });
+                    
+                    if (!isNaN(cgpa) && semesterCredits > 0) {
+                        totalWeightedCGPA += cgpa * semesterCredits;
+                        totalCredits += semesterCredits;
+                    }
+                });
+                
+                const overallCGPA = totalCredits > 0 ? (totalWeightedCGPA / totalCredits) : 0;
+                overallCgpaElement.textContent = overallCGPA.toFixed(2);
+            };
+
+            // Export data function
+            const exportData = () => {
+                const state = JSON.parse(localStorage.getItem('gradeTrackerState') || '[]');
+                if (state.length === 0) {
+                    showNotification('No data to export', false);
+                    return;
+                }
+                
+                const dataStr = JSON.stringify(state, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                
+                const exportFileDefaultName = 'semester-data.json';
+                
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileDefaultName);
+                linkElement.click();
+                
+                showNotification('Data exported successfully');
+            };
+
+            // Import data function
+            const importData = (file) => {
+                const reader = new FileReader();
+                
+                reader.onload = (e) => {
+                    try {
+                        const state = JSON.parse(e.target.result);
+                        
+                        // Validate the imported data structure
+                        if (!Array.isArray(state)) {
+                            throw new Error('Invalid data format');
+                        }
+                        
+                        // Clear current data
+                        semestersContainer.innerHTML = '';
+                        semesterCounter = 0;
+                        courseCounter = 0;
+                        
+                        // Load the imported data
+                        state.forEach(semesterData => {
+                            const semesterId = addSemesterCard(semesterData.name);
+                            const coursesContainer = document.getElementById(`courses-${semesterId}`);
+                            semesterData.courses.forEach(courseData => {
+                                addCourseCard(coursesContainer, courseData.name, courseData.credits, courseData.components, courseData.manualCGPA, courseData.bonusMarks);
+                            });
+                        });
+                        
+                        // Save to localStorage
+                        localStorage.setItem('gradeTrackerState', JSON.stringify(state));
+                        
+                        showNotification('Data imported successfully');
+                    } catch (error) {
+                        console.error('Import error:', error);
+                        showNotification('Error importing data: Invalid file format', false);
+                    }
+                };
+                
+                reader.onerror = () => {
+                    showNotification('Error reading file', false);
+                };
+                
+                reader.readAsText(file);
+            };
+
+            const saveState = () => {
+                const state = [];
+                const semesterCards = document.querySelectorAll('[id^="semester-"]');
+                semesterCards.forEach(semesterCard => {
+                    const semester = {
+                        name: semesterCard.querySelector('.semester-name').value,
+                        courses: []
+                    };
+                    const courseCards = semesterCard.querySelectorAll('.course-card');
+                    courseCards.forEach(courseCard => {
+                        const manualCGPAInput = courseCard.querySelector('.manual-cgpa-input');
+                        const bonusMarksInput = courseCard.querySelector('.bonus-marks-input');
+                        const course = {
+                            name: courseCard.querySelector('.course-name').value,
+                            credits: courseCard.querySelector('.course-credits').value,
+                            components: [],
+                            manualCGPA: manualCGPAInput ? manualCGPAInput.value : '',
+                            bonusMarks: bonusMarksInput ? bonusMarksInput.value : '0'
+                        };
+                        const componentRows = courseCard.querySelectorAll('.component-row');
+                        componentRows.forEach(row => {
+                            course.components.push({
+                                name: row.querySelector('.component-name').value,
+                                score: row.querySelector('.component-score').value,
+                                outOf: row.querySelector('.component-outof').value,
+                                weight: row.querySelector('.component-weight').value
+                            });
+                        });
+                        semester.courses.push(course);
+                    });
+                    state.push(semester);
+                });
+                localStorage.setItem('gradeTrackerState', JSON.stringify(state));
+            };
+            
+            const loadState = () => {
+                const savedState = localStorage.getItem('gradeTrackerState');
+                if (savedState) {
+                    const state = JSON.parse(savedState);
+                    state.forEach(semesterData => {
+                        const semesterId = addSemesterCard(semesterData.name);
+                        const coursesContainer = document.getElementById(`courses-${semesterId}`);
+                        semesterData.courses.forEach(courseData => {
+                            addCourseCard(coursesContainer, courseData.name, courseData.credits, courseData.components, courseData.manualCGPA, courseData.bonusMarks || '0');
+                        });
+                    });
+                }
+            };
+
+            const showEmptyState = () => {
+                if (semestersContainer.children.length === 0) {
+                    const emptyState = document.createElement('div');
+                    emptyState.className = 'empty-state rounded-lg';
+                    emptyState.innerHTML = `
+                        <i class="fas fa-book-open text-3xl text-gray-700 mb-3"></i>
+                        <h3 class="text-lg font-semibold text-gray-500">No semesters yet</h3>
+                        <p class="text-gray-600 text-sm mt-1">Add your first semester to get started</p>
+                    `;
+                    semestersContainer.appendChild(emptyState);
+                }
+            };
+
+            const removeEmptyState = () => {
+                const emptyState = semestersContainer.querySelector('.empty-state');
+                if (emptyState) {
+                    emptyState.remove();
+                }
+            };
+
+            const addSemesterCard = (name = 'New Semester') => {
+                removeEmptyState();
+                semesterCounter++;
+                const semesterId = `semester-${semesterCounter}`;
+                const card = document.createElement('div');
+                card.id = semesterId;
+                card.className = 'bg-[#0a0a0a] p-4 rounded-lg shadow border border-gray-800 cursor-default';
+                card.draggable = false;
+                card.innerHTML = `
+                    <div class="flex justify-between items-center mb-3 pb-2 semester-header">
+                        <div class="flex-grow">
+                            <input type="text" value="${name}" class="semester-name text-xl font-bold text-gray-200 bg-transparent w-full focus:outline-none focus:ring-0 border-b-2 border-transparent focus:border-indigo-500 transition-all" placeholder="Semester Name">
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-gray-400">Semester CGPA</p>
+                            <p class="text-2xl font-bold semester-cgpa">0.00</p>
+                        </div>
+                    </div>
+                    <div id="courses-${semesterId}" class="courses-container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 mb-3">
+                    </div>
+                    <div class="flex justify-end mt-3 space-x-2">
+                        <button class="add-course-btn btn-secondary text-xs font-medium py-1.5 px-3 rounded-md">Add Course</button>
+                        <button class="delete-semester-btn btn-danger text-xs font-medium py-1.5 px-3 rounded-md">Delete</button>
+                    </div>
+                `;
+                semestersContainer.appendChild(card);
+                
+                // Initialize drag and drop for this semester's courses container
+                const coursesContainer = document.getElementById(`courses-${semesterId}`);
+                initCourseDragAndDrop(coursesContainer);
+                
+                updateSemesterCalculations(card);
+                updateDragState();
+                sortSemesters();
+                saveState();
+                return semesterId;
+            };
+
+            const addCourseCard = (container, courseName = 'New Course', credits = '3', components = [], manualCGPA = '', bonusMarks = '0') => {
+                courseCounter++;
+                const card = document.createElement('div');
+                card.className = 'course-card p-3 rounded-lg flex flex-col cursor-default';
+                card.draggable = false;
+                card.dataset.courseId = courseCounter;
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="w-full">
+                            <input type="text" value="${courseName}" class="course-name text-lg font-bold text-gray-200 bg-transparent w-full focus:outline-none focus:ring-0 border-b-2 border-transparent focus:border-indigo-500 transition-all" placeholder="Course Name">
+                            <div class="flex space-x-2 mt-1 items-center text-gray-400">
+                                <label class="text-xs font-medium">Credits:</label>
+                                <input type="number" value="${credits}" min="0" step="0.5" class="course-credits input-field w-12 text-xs rounded p-1 text-center">
+                            </div>
+                            <div class="bonus-marks-container">
+                                <label class="bonus-marks-label">Bonus Marks:</label>
+                                <input type="number" value="${bonusMarks}" min="0" step="0.5" class="bonus-marks-input input-field w-12 text-xs rounded p-1 text-center">
+                            </div>
+                        </div>
+                        <button class="delete-course-btn btn-danger text-xs py-1 px-2 rounded-md">Delete</button>
+                    </div>
+
+                    <div class="mode-toggle">
+                        <span class="mode-label">Detailed</span>
+                        <label class="switch">
+                            <input type="checkbox" class="mode-toggle-input">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="mode-label">Quick Add</span>
+                    </div>
+
+                    <div class="detailed-mode">
+                        <div class="flex-grow space-y-2">
+                            <div class="component-list space-y-1.5">
+                            </div>
+                            <button class="add-component-btn btn-secondary text-xs font-medium py-1 px-2 rounded-md w-full">Add Component</button>
+                        </div>
+
+                        <div class="mt-3 border-t border-gray-700 pt-2 grid grid-cols-1 md:grid-cols-2 gap-2 items-center">
+                            <div class="text-left">
+                                <p class="text-sm font-medium text-gray-300">Course Grade</p>
+                                <div class="flex items-baseline space-x-1">
+                                    <span class="text-lg font-bold grade-display">0.00%</span>
+                                    <span class="text-md font-bold grade-display-letter">N/A</span>
+                                    <span class="text-sm font-semibold cgpa-display">(<span class="grade-display-cgpa">0.0</span>)</span>
+                                </div>
+                                <p class="text-xs font-medium weight-total mt-1">Total Weight: <span class="font-bold">0%</span></p>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-${courseCounter}"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="quick-add-mode hidden">
+                        <div class="quick-add-panel">
+                            <div class="flex items-center space-x-2">
+                                <label class="text-xs font-medium">Enter Course CGPA:</label>
+                                <input type="number" step="0.01" min="0" max="4.0" value="${manualCGPA}" class="manual-cgpa-input input-field w-16 text-xs rounded p-1 text-center">
+                                <span class="text-xs text-gray-500">/ 4.0</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1.5">Use this for previous semesters where you already know your course CGPA</p>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+                
+                // Set up mode toggle
+                const modeToggle = card.querySelector('.mode-toggle-input');
+                const detailedMode = card.querySelector('.detailed-mode');
+                const quickAddMode = card.querySelector('.quick-add-mode');
+                
+                modeToggle.addEventListener('change', () => {
+                    if (modeToggle.checked) {
+                        detailedMode.classList.add('hidden');
+                        quickAddMode.classList.remove('hidden');
+                    } else {
+                        detailedMode.classList.remove('hidden');
+                        quickAddMode.classList.add('hidden');
+                    }
+                    updateCourseCalculations(card);
+                });
+                
+                // Initialize with manual CGPA if provided
+                if (manualCGPA) {
+                    modeToggle.checked = true;
+                    detailedMode.classList.add('hidden');
+                    quickAddMode.classList.remove('hidden');
+                }
+                
+                const componentList = card.querySelector('.component-list');
+                
+                if (components.length > 0) {
+                    components.forEach(comp => addComponentRow(componentList, comp.name, comp.score, comp.outOf, comp.weight));
+                } else {
+                     addComponentRow(componentList);
+                }
+
+                const chartInstance = initializeChart(card);
+                card.chartInstance = chartInstance;
+                
+                updateCourseCalculations(card);
+                saveState();
+            };
+
+            const addComponentRow = (container, name = '', score = '', outOf = '', weight = '') => {
+                if (outOf === '') {
+                    outOf = weight; 
+                }
+                const row = document.createElement('div');
+                row.className = 'component-row grid grid-cols-12 gap-1 items-center text-xs';
+                row.innerHTML = `
+                    <div class="col-span-5">
+                        <input type="text" placeholder="Name" value="${name}" class="component-name input-field w-full text-xs rounded p-1 bg-[#141414]">
+                    </div>
+                    <div class="col-span-2">
+                        <input type="number" placeholder="Score" value="${score}" min="0" class="component-score input-field w-full text-xs rounded p-1 text-center bg-[#141414]">
+                    </div>
+                    <div class="col-span-2">
+                        <input type="number" placeholder="Out Of" value="${outOf}" min="0" class="component-outof input-field w-full text-xs rounded p-1 text-center bg-[#141414]">
+                    </div>
+                    <div class="col-span-2">
+                        <input type="number" placeholder="Wt. %" value="${weight}" min="0" max="100" class="component-weight input-field w-full text-xs rounded p-1 text-center bg-[#141414]">
+                    </div>
+                    <div class="col-span-1 text-right">
+                        <button class="delete-component-btn btn-danger rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">&ndash;</button>
+                    </div>
+                `;
+                container.appendChild(row);
+                saveState();
+            };
+
+            const initializeChart = (card) => {
+                const ctx = card.querySelector('canvas').getContext('2d');
+                return new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            data: [],
+                            backgroundColor: [
+                                'rgba(79, 70, 229, 0.7)', 'rgba(96, 165, 250, 0.7)', 'rgba(52, 211, 153, 0.7)',
+                                'rgba(251, 191, 36, 0.7)', 'rgba(248, 113, 113, 0.7)', 'rgba(167, 139, 250, 0.7)'
+                            ],
+                            borderColor: '#1a1a1a',
+                            borderWidth: 2,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { 
+                                    boxWidth: 12, 
+                                    padding: 12, 
+                                    font: { size: 9 },
+                                    color: '#e5e5e5'
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => {
+                                        let label = context.label || '';
+                                        if (label) label += ': ';
+                                        if (context.parsed !== null) label += context.parsed + '%';
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        cutout: '60%'
+                    }
+                });
+            };
+
+            const getCourseCGPA = (finalGrade) => {
+                // Apply rounding only for marks on the edge of the next grade
+                let roundedGrade = finalGrade;
+                
+                // Check if the grade is on the edge of the next letter grade
+                if (finalGrade >= 89.5 && finalGrade < 90) {
+                    roundedGrade = 90;
+                } else if (finalGrade >= 84.5 && finalGrade < 85) {
+                    roundedGrade = 85;
+                } else if (finalGrade >= 79.5 && finalGrade < 80) {
+                    roundedGrade = 80;
+                } else if (finalGrade >= 74.5 && finalGrade < 75) {
+                    roundedGrade = 75;
+                } else if (finalGrade >= 69.5 && finalGrade < 70) {
+                    roundedGrade = 70;
+                } else if (finalGrade >= 64.5 && finalGrade < 65) {
+                    roundedGrade = 65;
+                } else if (finalGrade >= 59.5 && finalGrade < 60) {
+                    roundedGrade = 60;
+                } else if (finalGrade >= 56.5 && finalGrade < 57) {
+                    roundedGrade = 57;
+                } else if (finalGrade >= 54.5 && finalGrade < 55) {
+                    roundedGrade = 55;
+                } else if (finalGrade >= 51.5 && finalGrade < 52) {
+                    roundedGrade = 52;
+                } else if (finalGrade >= 49.5 && finalGrade < 50) {
+                    roundedGrade = 50;
+                }
+                
+                // Calculate CGPA based on the rounded grade
+                if (roundedGrade >= 90) return 4.0;
+                if (roundedGrade >= 85) return 3.7;
+                if (roundedGrade >= 80) return 3.3;
+                if (roundedGrade >= 75) return 3.0;
+                if (roundedGrade >= 70) return 2.7;
+                if (roundedGrade >= 65) return 2.3;
+                if (roundedGrade >= 60) return 2.0;
+                if (roundedGrade >= 57) return 1.7;
+                if (roundedGrade >= 55) return 1.3;
+                if (roundedGrade >= 52) return 1.0;
+                if (roundedGrade >= 50) return 0.7;
+                return 0.0;
+            };
+
+            const getCourseLetterGrade = (finalGrade) => {
+                // Apply rounding only for marks on the edge of the next letter grade
+                let roundedGrade = finalGrade;
+                
+                // Check if the grade is on the edge of the next letter grade
+                if (finalGrade >= 89.5 && finalGrade < 90) {
+                    roundedGrade = 90;
+                } else if (finalGrade >= 84.5 && finalGrade < 85) {
+                    roundedGrade = 85;
+                } else if (finalGrade >= 79.5 && finalGrade < 80) {
+                    roundedGrade = 80;
+                } else if (finalGrade >= 74.5 && finalGrade < 75) {
+                    roundedGrade = 75;
+                } else if (finalGrade >= 69.5 && finalGrade < 70) {
+                    roundedGrade = 70;
+                } else if (finalGrade >= 64.5 && finalGrade < 65) {
+                    roundedGrade = 65;
+                } else if (finalGrade >= 59.5 && finalGrade < 60) {
+                    roundedGrade = 60;
+                } else if (finalGrade >= 56.5 && finalGrade < 57) {
+                    roundedGrade = 57;
+                } else if (finalGrade >= 54.5 && finalGrade < 55) {
+                    roundedGrade = 55;
+                } else if (finalGrade >= 51.5 && finalGrade < 52) {
+                    roundedGrade = 52;
+                } else if (finalGrade >= 49.5 && finalGrade < 50) {
+                    roundedGrade = 50;
+                }
+                
+                // Calculate letter grade based on the rounded grade
+                if (roundedGrade >= 97) return 'A+';
+                if (roundedGrade >= 90) return 'A';
+                if (roundedGrade >= 85) return 'A-';
+                if (roundedGrade >= 80) return 'B+';
+                if (roundedGrade >= 75) return 'B';
+                if (roundedGrade >= 70) return 'B-';
+                if (roundedGrade >= 65) return 'C+';
+                if (roundedGrade >= 60) return 'C';
+                if (roundedGrade >= 57) return 'C-';
+                if (roundedGrade >= 55) return 'D+';
+                if (roundedGrade >= 52) return 'D';
+                if (roundedGrade >= 50) return 'D-';
+                return 'F';
+            };
+
+            const updateCourseCalculations = (card) => {
+                const modeToggle = card.querySelector('.mode-toggle-input');
+                const manualCGPAInput = card.querySelector('.manual-cgpa-input');
+                const bonusMarksInput = card.querySelector('.bonus-marks-input');
+                
+                if (modeToggle.checked) {
+                    // Quick Add Mode - use manually entered CGPA
+                    const manualCGPA = parseFloat(manualCGPAInput.value);
+                    
+                    if (!isNaN(manualCGPA) && manualCGPA >= 0 && manualCGPA <= 4.0) {
+                        card.querySelector('.grade-display-cgpa').textContent = manualCGPA.toFixed(1);
+                        
+                        // Calculate approximate percentage and letter grade
+                        let approximatePercentage = 50;
+                        if (manualCGPA >= 4.0) approximatePercentage = 95;
+                        else if (manualCGPA >= 3.7) approximatePercentage = 90;
+                        else if (manualCGPA >= 3.3) approximatePercentage = 85;
+                        else if (manualCGPA >= 3.0) approximatePercentage = 80;
+                        else if (manualCGPA >= 2.7) approximatePercentage = 75;
+                        else if (manualCGPA >= 2.3) approximatePercentage = 70;
+                        else if (manualCGPA >= 2.0) approximatePercentage = 65;
+                        else if (manualCGPA >= 1.7) approximatePercentage = 62;
+                        else if (manualCGPA >= 1.3) approximatePercentage = 57;
+                        else if (manualCGPA >= 1.0) approximatePercentage = 53;
+                        else if (manualCGPA >= 0.7) approximatePercentage = 50;
+                        else approximatePercentage = 0;
+                        
+                        card.querySelector('.grade-display').textContent = `${approximatePercentage}%`;
+                        card.querySelector('.grade-display-letter').textContent = getCourseLetterGrade(approximatePercentage);
+                    } else {
+                        card.querySelector('.grade-display').textContent = `0.00%`;
+                        card.querySelector('.grade-display-letter').textContent = 'N/A';
+                        card.querySelector('.grade-display-cgpa').textContent = '0.0';
+                    }
+                    
+                    card.querySelector('.weight-total span').textContent = '100%';
+                    card.querySelector('.weight-total span').classList.remove('weight-warning', 'weight-success');
+                    card.querySelector('.weight-total span').classList.add('weight-success');
+                    
+                    // Update chart to show 100% for manual entry
+                    updateChart(card.chartInstance, {'Manual Entry': 100});
+                } else {
+                    // Detailed Mode - calculate from components
+                    const rows = card.querySelectorAll('.component-row');
+                    let totalWeightedScore = 0;
+                    let totalWeightWithScore = 0;
+                    let totalWeight = 0;
+                    const chartData = {};
+
+                    rows.forEach(row => {
+                        const score = parseFloat(row.querySelector('.component-score').value);
+                        const outOf = parseFloat(row.querySelector('.component-outof').value);
+                        const weight = parseFloat(row.querySelector('.component-weight').value);
+                        const name = row.querySelector('.component-name').value.toLowerCase();
+                        
+                        if (!isNaN(weight)) {
+                            totalWeight += weight;
+
+                            let category = 'Other';
+                            if (name.includes('assign')) category = 'Assignments';
+                            else if (name.includes('quiz')) category = 'Quizzes';
+                            else if (name.includes('midterm') || name.includes('final') || name.includes('exam')) category = 'Exams';
+                            else if (name.includes('particip') || name.includes('attend')) category = 'Participation';
+                            
+                            if (!chartData[category]) chartData[category] = 0;
+                            chartData[category] += weight;
+
+                            if (!isNaN(score) && !isNaN(outOf) && outOf > 0) {
+                                totalWeightedScore += (score / outOf) * weight;
+                                totalWeightWithScore += weight;
+                            }
+                        }
+                    });
+
+                    const bonusMarks = parseFloat(bonusMarksInput.value) || 0;
+                    const finalGrade = totalWeightWithScore > 0 ? (totalWeightedScore / totalWeightWithScore) * 100 + bonusMarks : 0;
+                    const finalCGPA = getCourseCGPA(finalGrade);
+                    const finalLetterGrade = getCourseLetterGrade(finalGrade);
+
+                    card.querySelector('.grade-display').textContent = `${finalGrade.toFixed(2)}%`;
+                    card.querySelector('.grade-display-letter').textContent = finalLetterGrade;
+                    card.querySelector('.grade-display-cgpa').textContent = finalCGPA.toFixed(1);
+
+                    const weightTotalEl = card.querySelector('.weight-total span');
+                    weightTotalEl.textContent = `${totalWeight}%`;
+                    weightTotalEl.classList.remove('weight-warning', 'weight-success');
+                    if (totalWeight > 100) {
+                        weightTotalEl.classList.add('weight-warning');
+                    } else if (totalWeight === 100) {
+                         weightTotalEl.classList.add('weight-success');
+                    }
+
+                    updateChart(card.chartInstance, chartData);
+                }
+                
+                updateSemesterCalculations(card.closest('[id^="semester-"]'));
+                saveState();
+            };
+
+            const updateSemesterCalculations = (semesterCard) => {
+                let totalWeightedCGPA = 0;
+                let totalCredits = 0;
+                const courseCards = semesterCard.querySelectorAll('.course-card');
+
+                courseCards.forEach(courseCard => {
+                    const cgpa = parseFloat(courseCard.querySelector('.grade-display-cgpa').textContent);
+                    const credits = parseFloat(courseCard.querySelector('.course-credits').value);
+                    if (!isNaN(cgpa) && !isNaN(credits)) {
+                        totalWeightedCGPA += cgpa * credits;
+                        totalCredits += credits;
+                    }
+                });
+                const semesterCGPA = totalCredits > 0 ? (totalWeightedCGPA / totalCredits) : 0;
+                semesterCard.querySelector('.semester-cgpa').textContent = semesterCGPA.toFixed(2);
+                
+                updateOverallCGPA();
+                saveState();
+            };
+
+            const updateChart = (chart, data) => {
+                const labels = Object.keys(data);
+                const values = Object.values(data);
+                chart.data.labels = labels;
+                chart.data.datasets[0].data = values;
+                chart.update();
+            };
+
+            const getSemesterSortValue = (name) => {
+                const parts = name.toLowerCase().split(' ');
+                let year = null;
+                let semesterValue = 0;
+                
+                // Try to find a year in the name (either 4-digit or 2-digit)
+                for (const part of parts) {
+                    // Check if part is a 4-digit year
+                    if (/^\d{4}$/.test(part)) {
+                        year = parseInt(part, 10);
+                        break;
+                    }
+                    // Check if part is a 2-digit year
+                    if (/^\d{2}$/.test(part)) {
+                        year = 2000 + parseInt(part, 10);
+                        break;
+                    }
+                }
+                
+                // Determine semester value based on semester name
+                if (name.toLowerCase().includes('fall')) semesterValue = 3;
+                else if (name.toLowerCase().includes('summer')) semesterValue = 2;
+                else if (name.toLowerCase().includes('spring')) semesterValue = 1;
+                
+                return { year, semesterValue };
+            };
+
+            const sortSemesters = () => {
+                const focusedElement = document.activeElement;
+                let focusedSemesterId = null;
+
+                if (focusedElement && focusedElement.classList.contains('semester-name')) {
+                    focusedSemesterId = focusedElement.closest('[id^="semester-"]').id;
+                }
+
+                const semesters = Array.from(semestersContainer.children);
+                semesters.sort((a, b) => {
+                    const aName = a.querySelector('.semester-name').value;
+                    const bName = b.querySelector('.semester-name').value;
+                    const aSort = getSemesterSortValue(aName);
+                    const bSort = getSemesterSortValue(bName);
+                    
+                    // Handle cases where year might be null
+                    if (aSort.year === null && bSort.year === null) return 0;
+                    if (aSort.year === null) return 1;
+                    if (bSort.year === null) return -1;
+                    
+                    if (aSort.year !== bSort.year) {
+                        return bSort.year - aSort.year;
+                    }
+                    return bSort.semesterValue - aSort.semesterValue;
+                });
+                semesters.forEach(semester => semestersContainer.appendChild(semester));
+
+                if (focusedSemesterId) {
+                    const newFocusedElement = document.getElementById(focusedSemesterId)?.querySelector('.semester-name');
+                    if (newFocusedElement) {
+                        newFocusedElement.focus();
+                    }
+                }
+                saveState();
+            };
+
+            const updateDragState = () => {
+                const draggableSemesters = document.querySelectorAll('[id^="semester-"]');
+                const draggableCourses = document.querySelectorAll('.course-card');
+                
+                draggableSemesters.forEach(el => {
+                    el.draggable = !isLocked;
+                    el.classList.toggle('cursor-grab', !isLocked);
+                    el.classList.toggle('cursor-default', isLocked);
+                });
+
+                draggableCourses.forEach(el => {
+                    el.draggable = !isLocked;
+                    el.classList.toggle('cursor-grab', !isLocked);
+                    el.classList.toggle('cursor-default', isLocked);
+                });
+                
+                // Update button text and icon
+                const icon = isLocked ? 'fa-lock' : 'fa-lock-open';
+                const text = isLocked ? 'Unlock Drag' : 'Lock Drag';
+                lockIndicator.className = `fas ${icon} lock-indicator text-xs ${isLocked ? '' : 'unlocked'}`;
+                toggleLockBtn.querySelector('span').textContent = text;
+                
+                if (isLocked) {
+                    toggleLockBtn.classList.remove('bg-gray-600');
+                    toggleLockBtn.classList.add('bg-indigo-600');
+                } else {
+                    toggleLockBtn.classList.remove('bg-indigo-600');
+                    toggleLockBtn.classList.add('bg-gray-600');
+                }
+            };
+
+            // Initialize course drag and drop for a courses container
+            const initCourseDragAndDrop = (container) => {
+                container.addEventListener('dragstart', (e) => {
+                    if (isLocked) {
+                        e.preventDefault();
+                        return;
+                    }
+                    draggedCourse = e.target.closest('.course-card');
+                    if (draggedCourse) {
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.setData('text/plain', draggedCourse.dataset.courseId);
+                        setTimeout(() => {
+                            draggedCourse.style.opacity = 0.5;
+                        }, 0);
+                    }
+                });
+
+                container.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    if (isLocked || !draggedCourse) return;
+                    
+                    const afterElement = getDragAfterElement(container, e.clientY);
+                    const existingDroppable = container.querySelector('.course-drag-over');
+                    if (existingDroppable) {
+                        existingDroppable.classList.remove('course-drag-over');
+                    }
+                    
+                    if (afterElement) {
+                        afterElement.classList.add('course-drag-over');
+                    }
+                });
+
+                container.addEventListener('dragleave', (e) => {
+                    if (!draggedCourse) return;
+                    const courses = container.querySelectorAll('.course-card');
+                    courses.forEach(course => {
+                        course.classList.remove('course-drag-over');
+                    });
+                });
+
+                container.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (isLocked || !draggedCourse) return;
+                    
+                    const afterElement = getDragAfterElement(container, e.clientY);
+                    const courses = container.querySelectorAll('.course-card');
+                    courses.forEach(course => {
+                        course.classList.remove('course-drag-over');
+                    });
+                    
+                    if (afterElement) {
+                        container.insertBefore(draggedCourse, afterElement);
+                    } else {
+                        container.appendChild(draggedCourse);
+                    }
+                    
+                    draggedCourse.style.opacity = '';
+                    draggedCourse = null;
+                    saveState();
+                });
+
+                container.addEventListener('dragend', () => {
+                    if (draggedCourse) {
+                        draggedCourse.style.opacity = '';
+                        draggedCourse = null;
+                    }
+                    const courses = container.querySelectorAll('.course-card');
+                    courses.forEach(course => {
+                        course.classList.remove('course-drag-over');
+                    });
+                });
+            };
+
+            const getDragAfterElement = (container, y) => {
+                const draggableElements = [...container.querySelectorAll('.course-card:not(.dragging)')];
+                
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset: offset, element: child };
+                    } else {
+                        return closest;
+                    }
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            };
+
+            // Search functionality
+            const performSearch = () => {
+                const searchTermValue = searchInput.value.trim().toLowerCase();
+                currentSearchTerm = searchTermValue;
+                
+                if (!searchTermValue) {
+                    clearSearchResults();
+                    return;
+                }
+                
+                let resultCount = 0;
+                
+                // Search through semesters
+                const semesterCards = document.querySelectorAll('[id^="semester-"]');
+                semesterCards.forEach(semesterCard => {
+                    const semesterName = semesterCard.querySelector('.semester-name').value.toLowerCase();
+                    const semesterMatch = semesterName.includes(searchTermValue) && (currentFilter === 'all' || currentFilter === 'semester');
+                    
+                    // Search through courses in this semester
+                    const courseCards = semesterCard.querySelectorAll('.course-card');
+                    let hasCourseMatch = false;
+                    
+                    courseCards.forEach(courseCard => {
+                        const courseName = courseCard.querySelector('.course-name').value.toLowerCase();
+                        const courseMatch = courseName.includes(searchTermValue) && (currentFilter === 'all' || currentFilter === 'course');
+                        
+                        if (courseMatch) {
+                            courseCard.classList.remove('hidden');
+                            highlightText(courseCard.querySelector('.course-name'), searchTermValue);
+                            resultCount++;
+                            hasCourseMatch = true;
+                        } else {
+                            courseCard.classList.add('hidden');
+                            removeHighlight(courseCard.querySelector('.course-name'));
+                        }
+                    });
+                    
+                    if (semesterMatch || hasCourseMatch) {
+                        semesterCard.classList.remove('hidden');
+                        if (semesterMatch) {
+                            highlightText(semesterCard.querySelector('.semester-name'), searchTermValue);
+                            resultCount++;
+                        } else {
+                            removeHighlight(semesterCard.querySelector('.semester-name'));
+                        }
+                    } else {
+                        semesterCard.classList.add('hidden');
+                        removeHighlight(semesterCard.querySelector('.semester-name'));
+                    }
+                });
+                
+                // Update search results info
+                searchResultsInfo.classList.remove('hidden');
+                resultsCount.textContent = resultCount;
+                searchTerm.textContent = searchTermValue;
+            };
+
+            const highlightText = (element, searchTerm) => {
+                const text = element.value;
+                if (!text) return;
+                
+                const regex = new RegExp(`(${searchTerm})`, 'gi');
+                const highlightedText = text.replace(regex, '<span class="search-highlight">$1</span>');
+                
+                // Create a temporary element to display the highlighted text
+                const tempElement = document.createElement('div');
+                tempElement.innerHTML = `<span>${highlightedText}</span>`;
+                
+                // Store the original value and replace with highlighted version
+                element.dataset.originalValue = text;
+                element.value = tempElement.textContent;
+            };
+
+            const removeHighlight = (element) => {
+                if (element.dataset.originalValue) {
+                    element.value = element.dataset.originalValue;
+                    delete element.dataset.originalValue;
+                }
+            };
+
+            const clearSearchResults = () => {
+                searchInput.value = '';
+                currentSearchTerm = '';
+                
+                // Show all semesters and courses
+                const semesterCards = document.querySelectorAll('[id^="semester-"]');
+                semesterCards.forEach(semesterCard => {
+                    semesterCard.classList.remove('hidden');
+                    removeHighlight(semesterCard.querySelector('.semester-name'));
+                    
+                    const courseCards = semesterCard.querySelectorAll('.course-card');
+                    courseCards.forEach(courseCard => {
+                        courseCard.classList.remove('hidden');
+                        removeHighlight(courseCard.querySelector('.course-name'));
+                    });
+                });
+                
+                // Hide search results info
+                searchResultsInfo.classList.add('hidden');
+            };
+
+            // Event listeners
+            addSemesterBtn.addEventListener('click', () => addSemesterCard());
+
+            toggleLockBtn.addEventListener('click', () => {
+                isLocked = !isLocked;
+                updateDragState();
+            });
+            
+            // Export/Import event listeners
+            exportBtn.addEventListener('click', exportData);
+            
+            importBtn.addEventListener('click', () => {
+                importFile.click();
+            });
+            
+            importFile.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    importData(e.target.files[0]);
+                    // Reset the file input
+                    e.target.value = '';
+                }
+            });
+            
+            // Search event listeners
+            searchBtn.addEventListener('click', performSearch);
+            
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    performSearch();
+                }
+            });
+            
+            clearSearch.addEventListener('click', clearSearchResults);
+            
+            // Filter option event listeners
+            filterOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    filterOptions.forEach(opt => opt.classList.remove('active'));
+                    option.classList.add('active');
+                    currentFilter = option.getAttribute('data-filter');
+                    
+                    if (currentSearchTerm) {
+                        performSearch();
+                    }
+                });
+            });
+            
+            semestersContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-semester-btn')) {
+                    const semesterCard = e.target.closest('[id^="semester-"]');
+                    semesterCard.remove();
+                    saveState();
+                    showEmptyState();
+                    updateOverallCGPA();
+                } else if (e.target.classList.contains('add-course-btn')) {
+                    const semesterCard = e.target.closest('[id^="semester-"]');
+                    const coursesContainer = semesterCard.querySelector('[id^="courses-"]');
+                    addCourseCard(coursesContainer);
+                } else if (e.target.classList.contains('delete-course-btn')) {
+                    const courseCard = e.target.closest('.course-card');
+                    const semesterCard = courseCard.closest('[id^="semester-"]');
+                    courseCard.remove();
+                    updateSemesterCalculations(semesterCard);
+                } else if (e.target.classList.contains('add-component-btn')) {
+                    const componentList = e.target.previousElementSibling;
+                    addComponentRow(componentList);
+                } else if (e.target.classList.contains('delete-component-btn')) {
+                    const componentRow = e.target.closest('.component-row');
+                    const courseCard = componentRow.closest('.course-card');
+                    componentRow.remove();
+                    updateCourseCalculations(courseCard);
+                }
+            });
+
+            semestersContainer.addEventListener('input', (e) => {
+                const courseCard = e.target.closest('.course-card');
+                if(courseCard) {
+                    updateCourseCalculations(courseCard);
+                } else if (e.target.classList.contains('semester-name')) {
+                    sortSemesters();
+                }
+                saveState();
+            });
+
+            // Drag and Drop Logic for Semesters
+            semestersContainer.addEventListener('dragstart', (e) => {
+                if (isLocked) {
+                    e.preventDefault();
+                    return;
+                }
+                draggedSemester = e.target.closest('[id^="semester-"]');
+                if (draggedSemester) {
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', draggedSemester.id);
+                    setTimeout(() => {
+                        draggedSemester.style.opacity = 0.5;
+                    }, 0);
+                }
+            });
+
+            semestersContainer.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                if (isLocked) return;
+                const target = e.target.closest('[id^="semester-"]');
+                if (target && target !== draggedSemester && draggedSemester) {
+                    const rect = target.getBoundingClientRect();
+                    const isAfter = e.clientY > rect.top + rect.height / 2;
+                    document.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom'));
+                    if (isAfter) {
+                        target.classList.add('drag-over-bottom');
+                    } else {
+                        target.classList.add('drag-over-top');
+                    }
+                }
+            });
+
+            semestersContainer.addEventListener('dragleave', (e) => {
+                 document.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom'));
+            });
+
+            semestersContainer.addEventListener('drop', (e) => {
+                e.preventDefault();
+                if (isLocked) return;
+                const target = e.target.closest('[id^="semester-"]');
+                if (target && target !== draggedSemester && draggedSemester) {
+                    const rect = target.getBoundingClientRect();
+                    const isAfter = e.clientY > rect.top + rect.height / 2;
+                    if (isAfter) {
+                        semestersContainer.insertBefore(draggedSemester, target.nextElementSibling);
+                    } else {
+                        semestersContainer.insertBefore(draggedSemester, target);
+                    }
+                }
+                document.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom'));
+                saveState();
+            });
+
+            semestersContainer.addEventListener('dragend', (e) => {
+                if (draggedSemester) {
+                    draggedSemester.style.opacity = '';
+                    draggedSemester = null;
+                }
+                document.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom'));
+            });
+
+            // Initialize the application
+            loadState();
+            updateDragState();
+            updateOverallCGPA();
+            // Show empty state if no semesters exist
+            if (document.querySelectorAll('[id^="semester-"]').length === 0) {
+                showEmptyState();
+            }
+        });
+    </script>
+</body>
+</html>
